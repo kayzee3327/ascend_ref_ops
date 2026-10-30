@@ -62,8 +62,13 @@ variables rather than overwriting them, and that is what lets all four coexist.
 | `_manifest.json` | written by `build.py`, asserted on import |
 
 `.cache/` holds bare per-remote fetch caches, `_work/` the extracted and renamed
-sources, `src/ref_ops/_opp/` the installed vendor packages. All three are
-gitignored and all three are reproducible from `pins.py`.
+sources, `src/ref_ops/_opp/` the installed vendor packages, `src/ref_ops/_bridge/`
+the JIT-compiled aclnn bridge. All four are gitignored and all four are
+reproducible from `pins.py`.
+
+`tests/` answers the claims this README makes; see `tests/README.md`. The short
+version: all four operators run in one process, and both renamed ops are
+bit-for-bit identical to their original-named counterparts across 24 shapes.
 
 ## Scope notes on the operators themselves
 
