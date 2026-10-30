@@ -1,0 +1,8 @@
+.cache/
+_work/
+src/ref_ops/_opp/
+src/ref_ops/_bridge/
+src/ref_ops/_manifest.json
+*.egg-info/
+__pycache__/
+build.log

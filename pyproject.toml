@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ref_ops"
+version = "0.1.0"
+description = "Reference KDA operators from pinned upstreams, four in one process"
+requires-python = ">=3.10"
+
+# Deliberately no dependencies. torch, torch_npu and the fla_npu wheel are
+# installed into the venv by `python -m ref_ops.build`, which asserts the exact
+# pinned version rather than resolving a range -- a range would let pip move the
+# commit this package claims to be built from.
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ref_ops*"]
+
+[tool.setuptools.package-data]
+ref_ops = ["_manifest.json"]
