@@ -654,6 +654,32 @@ def build_fla() -> None:
     })
 
 
+def stale_pins() -> list[tuple[str, str, str]]:
+    """Pins whose commit differs from what the installed artifact was built at.
+
+    Returns ``(name, built_commit, pinned_commit)`` per disagreement, empty when
+    current. This is what makes "change a hash, rerun" true: the vendor package
+    on disk is a perfectly valid package built from the *old* commit, so
+    ``available()`` says yes and nothing would otherwise rebuild. The artifact
+    cannot be asked which commit it came from -- only the manifest records that.
+
+    Covers `cann` and `catlass` but not `fla`: that arm asserts its wheel
+    version on every call (``fla_npu.check_pin``), so it cannot drift silently.
+    """
+    from . import manifest
+
+    built = manifest().get("pins", {})
+    if not built:
+        return []
+    stale = []
+    for name in ("cann", "catlass"):
+        was = built.get(name, {}).get("commit", "")
+        now = PINS[name].commit
+        if was != now:
+            stale.append((name, was, now))
+    return stale
+
+
 def check() -> int:
     """Report what is current and what is not; build nothing. Exit status."""
     from . import cann as cann_mod
@@ -672,13 +698,24 @@ def check() -> int:
         print(f"  {why}")
         ok = False
 
+    stale = stale_pins()
     for op in OPS:
         available, why = cann_mod.available(op.snake)
-        print(f"cann.{op.snake:<16} ({op.aclnn:<28}) : "
-              f"{'ok' if available else 'MISSING'}")
+        # A package built at an older pin is installed and working, so
+        # `available` says yes. Reporting that as plain "ok" would hide exactly
+        # the state a pin bump leaves behind.
+        state = "ok" if available else "MISSING"
+        if available and stale:
+            state = "STALE"
+        print(f"cann.{op.snake:<16} ({op.aclnn:<28}) : {state}")
         if not available:
             print(f"  {why}")
             ok = False
+
+    for name, was, now in stale:
+        print(f"  pin {name} moved {was[:12] or '(none)'} -> {now[:12]} "
+              f"since this was built")
+        ok = False
 
     if not ok:
         print()
@@ -719,14 +756,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.only != "fla":
         from . import cann as cann_mod
 
+        stale = stale_pins()
         todo = tuple(
             op for op in requested
-            if args.force or not cann_mod.available(op.snake)[0]
+            if args.force or stale or not cann_mod.available(op.snake)[0]
         )
         if not todo:
-            log(f"cann: {[op.snake for op in requested]} already built; "
-                f"--force to rebuild")
+            log(f"cann: {[op.snake for op in requested]} already built at "
+                f"{PINS['cann'].commit[:12]}; --force to rebuild")
         else:
+            if stale:
+                for name, was, now in stale:
+                    log(f"cann: pin {name} moved {was[:12] or '(none)'} -> "
+                        f"{now[:12]}, rebuilding")
             build_cann(todo, args.jobs)
 
     print()

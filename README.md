@@ -21,13 +21,24 @@ Nothing is installed into the CANN system path: the vendor packages live inside
 /data/wangkaize/.vsglang/bin/python -m ref_ops.build
 ```
 
-Use the venv's interpreter, not a bare `python`: the vendor wheel installs into
-`sys.executable`, so the system interpreter would put it where nothing can see
-it. `--check` reports status without building, `--force` rebuilds, `--only` and
-`--ops` narrow the work.
+Use the venv's interpreter, not a bare `python` -- the vendor wheel installs
+into `sys.executable`. The CANN arm takes ~20 minutes (two kernel compiles); the
+fla arm compiles nothing. `--check` reports status without building, `--only`
+and `--ops` narrow the work.
 
-The CANN arm takes tens of minutes -- it compiles kernel binaries. The fla arm
-compiles nothing.
+## Moving a pin
+
+Edit the commit in `pins.py` and rerun `python -m ref_ops.build`. It compares
+the pins against the manifest and rebuilds what moved, so no `--force` is
+needed; `--check` reports `STALE` rather than `ok` in between. Then rerun the
+inertness tests -- after a `cann` bump they are the only thing that can catch a
+renamed op type changing kernel behaviour.
+
+**`AGENTS.md` is the one to read first if you are about to do either of these.**
+It covers the interpreter trap in full, what a successful install leaves on disk
+(and which of it is not scratch), and the four specific ways a pin bump fails --
+a patch that stops applying, a missing extraction subtree, a half-applied
+rename, and the fla wheel not being on PyPI.
 
 ## Why the two arms are not symmetric
 
